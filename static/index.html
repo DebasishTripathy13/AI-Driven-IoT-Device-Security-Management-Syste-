@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical IoT Device Manager</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="static/style.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-heartbeat"></i> Medical IoT Device Manager</h1>
+                <div class="header-stats">
+                    <div class="stat">
+                        <span class="stat-value" id="connected-count">0</span>
+                        <span class="stat-label">Connected</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" id="total-count">0</span>
+                        <span class="stat-label">Total Devices</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Control Panel -->
+            <section class="control-panel">
+                <div class="panel-header">
+                    <h2><i class="fas fa-cogs"></i> Control Panel</h2>
+                    <button class="btn btn-primary" onclick="refreshDevices()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+
+                <div class="controls-grid">
+                    <!-- Device Connection -->
+                    <div class="control-group">
+                        <h3><i class="fas fa-plug"></i> Device Connection</h3>
+                        <div class="button-group">
+                            <button class="btn btn-success" onclick="connectAllDevices()">
+                                <i class="fas fa-link"></i> Connect All
+                            </button>
+                            <button class="btn btn-danger" onclick="disconnectAllDevices()">
+                                <i class="fas fa-unlink"></i> Disconnect All
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Telemetry Control -->
+                    <div class="control-group">
+                        <h3><i class="fas fa-chart-line"></i> Telemetry</h3>
+                        <div class="telemetry-controls">
+                            <div class="input-group">
+                                <label for="message-count">Messages per device:</label>
+                                <input type="number" id="message-count" value="5" min="1" max="100">
+                            </div>
+                            <button class="btn btn-primary" onclick="sendTelemetry()">
+                                <i class="fas fa-paper-plane"></i> Send Batch
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="control-group">
+                        <h3><i class="fas fa-bolt"></i> Quick Actions</h3>
+                        <div class="quick-actions">
+                            <button class="btn btn-warning" onclick="openCodeModal()">
+                                <i class="fas fa-code"></i> Send Code to Selected
+                            </button>
+                            <button class="btn btn-secondary" onclick="openPatchModal()">
+                                <i class="fas fa-band-aid"></i> Send Patch to Selected
+                            </button>
+                            <button class="btn btn-info" onclick="sendStatusToAll()">
+                                <i class="fas fa-check-circle"></i> Status Check All
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Message Types -->
+                    <div class="control-group">
+                        <h3><i class="fas fa-envelope"></i> Custom Messages</h3>
+                        <div class="message-controls">
+                            <div class="input-group">
+                                <label for="message-type">Message Type:</label>
+                                <select id="message-type" onchange="updateMessageForm()">
+                                    <option value="normal">Normal Request (Telemetry)</option>
+                                    <option value="status">Status Check</option>
+                                    <option value="update">Update Device</option>
+                                    <option value="patch">Patch Device</option>
+                                    <option value="code">Execute Code</option>
+                                </select>
+                            </div>
+                            <div class="input-group">
+                                <label for="message-priority">Priority:</label>
+                                <select id="message-priority">
+                                    <option value="normal">Normal</option>
+                                    <option value="high">High</option>
+                                    <option value="critical">Critical</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" onclick="openMessageModal()">
+                                <i class="fas fa-paper-plane"></i> Send Custom Message
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Continuous Mode -->
+                    <div class="control-group">
+                        <h3><i class="fas fa-infinity"></i> Continuous Mode</h3>
+                        <div class="continuous-controls">
+                            <div class="input-row">
+                                <div class="input-group">
+                                    <label for="interval">Interval (s):</label>
+                                    <input type="number" id="interval" value="10" min="1" step="0.1">
+                                </div>
+                                <div class="input-group">
+                                    <label for="duration">Duration (s):</label>
+                                    <input type="number" id="duration" value="60" min="1">
+                                </div>
+                            </div>
+                            <div class="button-group">
+                                <button class="btn btn-success" onclick="startContinuous()">
+                                    <i class="fas fa-play"></i> Start
+                                </button>
+                                <button class="btn btn-warning" onclick="stopContinuous()" disabled>
+                                    <i class="fas fa-stop"></i> Stop
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Device Grid -->
+            <section class="device-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-medical-kit"></i> Medical Devices</h2>
+                    <div class="filter-controls">
+                        <select id="device-filter" onchange="filterDevices()">
+                            <option value="">All Device Types</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="device-grid" id="device-grid">
+                    <!-- Devices will be populated here -->
+                </div>
+            </section>
+
+            <!-- Activity Log -->
+            <section class="activity-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-list"></i> Activity Log</h2>
+                    <button class="btn btn-secondary" onclick="clearLog()">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                </div>
+                <div class="activity-log" id="activity-log">
+                    <!-- Activity entries will be added here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Processing...</p>
+        </div>
+    </div>
+
+    <!-- Custom Message Modal -->
+    <div class="modal-overlay" id="message-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-envelope"></i> Send Custom Message</h3>
+                <button class="modal-close" onclick="closeMessageModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label for="modal-device-select">Select Device:</label>
+                    <select id="modal-device-select">
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="modal-message-type">Message Type:</label>
+                    <select id="modal-message-type" onchange="updateModalForm()">
+                        <option value="normal">Normal Request (Telemetry)</option>
+                        <option value="status">Status Check</option>
+                        <option value="update">Update Device</option>
+                        <option value="patch">Patch Device</option>
+                        <option value="code">Execute Code</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="modal-priority">Priority:</label>
+                    <select id="modal-priority">
+                        <option value="normal">Normal</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                    </select>
+                </div>
+
+                <!-- Dynamic form content based on message type -->
+                <div id="dynamic-form-content">
+                    <!-- Content populated by updateModalForm() -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeMessageModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="sendCustomMessage()">
+                    <i class="fas fa-paper-plane"></i> Send Message
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Code Modal -->
+    <div class="modal-overlay" id="code-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-code"></i> Send Code to Device</h3>
+                <button class="modal-close" onclick="closeCodeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group" id="code-device-group">
+                    <label for="code-device-select">Target Device:</label>
+                    <select id="code-device-select">
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="code-language-select">Programming Language:</label>
+                    <select id="code-language-select" onchange="updateCodeTemplate()">
+                        <option value="python">Python</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="shell">Shell Script</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="code-template">Code Template:</label>
+                    <select id="code-template" onchange="loadCodeTemplate()">
+                        <option value="custom">Custom Code</option>
+                        <option value="health_check">Health Check</option>
+                        <option value="sensor_calibration">Sensor Calibration</option>
+                        <option value="diagnostic">Run Diagnostics</option>
+                        <option value="config_update">Update Configuration</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="quick-code-content">Code to Execute:</label>
+                    <div class="code-editor">
+                        <textarea id="quick-code-content" placeholder="Enter your code here..."></textarea>
+                    </div>
+                    <div class="help-text">Code will be executed on the target device(s)</div>
+                </div>
+
+                <div class="input-group">
+                    <label for="code-timeout">Execution Timeout (seconds):</label>
+                    <input type="number" id="code-timeout" value="30" min="5" max="300">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeCodeModal()">Cancel</button>
+                <button class="btn btn-warning" onclick="sendCodeMessage()">
+                    <i class="fas fa-play"></i> Execute Code
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Patch Modal -->
+    <div class="modal-overlay" id="patch-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-band-aid"></i> Send Patch to Device</h3>
+                <button class="modal-close" onclick="closePatchModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group" id="patch-device-group">
+                    <label for="patch-device-select">Target Device:</label>
+                    <select id="patch-device-select">
+                        <!-- Options populated by JS -->
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label for="patch-type-select">Patch Type:</label>
+                    <select id="patch-type-select" onchange="updatePatchTemplate()">
+                        <option value="configuration">Configuration Update</option>
+                        <option value="firmware">Firmware Patch</option>
+                        <option value="security">Security Update</option>
+                        <option value="feature">Feature Update</option>
+                        <option value="hotfix">Emergency Hotfix</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="patch-template">Patch Template:</label>
+                    <select id="patch-template" onchange="loadPatchTemplate()">
+                        <option value="custom">Custom Patch</option>
+                        <option value="config_reset">Reset Configuration</option>
+                        <option value="sensor_update">Update Sensor Settings</option>
+                        <option value="security_patch">Apply Security Patch</option>
+                        <option value="performance_tune">Performance Tuning</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label for="patch-version">Patch Version:</label>
+                    <input type="text" id="patch-version" placeholder="e.g., 1.2.3-patch1" value="1.0.0">
+                </div>
+
+                <div class="input-group">
+                    <label for="quick-patch-content">Patch Data (JSON):</label>
+                    <div class="json-editor">
+                        <textarea id="quick-patch-content" placeholder='{"version": "1.0.1", "changes": ["bug_fix_001"]}'></textarea>
+                    </div>
+                    <div class="help-text">JSON object containing patch details and data</div>
+                </div>
+
+                <div class="form-row">
+                    <label>
+                        <input type="checkbox" id="patch-rollback" checked>
+                        Enable automatic rollback on failure
+                    </label>
+                    <label>
+                        <input type="checkbox" id="patch-backup">
+                        Create backup before applying
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closePatchModal()">Cancel</button>
+                <button class="btn btn-warning" onclick="sendPatchMessage()">
+                    <i class="fas fa-download"></i> Apply Patch
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Details Modal -->
+    <div class="modal-overlay" id="device-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3><i class="fas fa-medical-kit"></i> Device Details</h3>
+                <button class="modal-close" onclick="closeDeviceModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="device-modal-content">
+                <!-- Content populated by JS -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeDeviceModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script src="static/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Security Monitor - Medical IoT System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card h3 {
+            color: #4a5568;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f7fafc;
+            border-radius: 8px;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            font-size: 1.2rem;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-active { background-color: #48bb78; }
+        .status-warning { background-color: #ed8936; }
+        .status-error { background-color: #f56565; }
+        
+        .agent-list {
+            list-style: none;
+        }
+        
+        .agent-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .agent-item:last-child {
+            border-bottom: none;
+        }
+        
+        .blocked-request {
+            background: #fed7d7;
+            border-left: 4px solid #f56565;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        
+        .blocked-request .timestamp {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .blocked-request .reason {
+            color: #c53030;
+            font-weight: 500;
+        }
+        
+        .refresh-btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            background: #3182ce;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+        }
+        
+        .risk-score {
+            padding: 4px 8px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .risk-low { background-color: #48bb78; }
+        .risk-medium { background-color: #ed8936; }
+        .risk-high { background-color: #f56565; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI Security Monitor</h1>
+            <p>Real-time monitoring of AI-powered medical IoT security system</p>
+        </div>
+        
+        <div class="dashboard-grid">
+            <!-- AI Agent Status -->
+            <div class="card">
+                <h3>🔧 AI Agent Status</h3>
+                <div id="agent-status" class="loading">Loading agent status...</div>
+            </div>
+            
+            <!-- Security Metrics -->
+            <div class="card">
+                <h3>📊 Security Metrics (24h)</h3>
+                <div id="security-metrics" class="loading">Loading metrics...</div>
+            </div>
+            
+            <!-- Recent Decisions -->
+            <div class="card">
+                <h3>⚖️ Recent AI Decisions</h3>
+                <div id="ai-decisions" class="loading">Loading decisions...</div>
+            </div>
+        </div>
+        
+        <div class="dashboard-grid">
+            <!-- Blocked Requests -->
+            <div class="card" style="grid-column: 1 / -1;">
+                <h3>🚫 Recently Blocked Requests</h3>
+                <div id="blocked-requests" class="loading">Loading blocked requests...</div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <button class="refresh-btn" onclick="refreshAll()">🔄 Refresh Data</button>
+            <button class="refresh-btn" onclick="window.location.href='http://localhost:8001/admin'" style="margin-left: 15px;">📈 Full Admin Dashboard</button>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh every 30 seconds
+        setInterval(refreshAll, 30000);
+        
+        // Initial load
+        refreshAll();
+        
+        async function refreshAll() {
+            await Promise.all([
+                loadAgentStatus(),
+                loadSecurityMetrics(),
+                loadAIDecisions(),
+                loadBlockedRequests()
+            ]);
+        }
+        
+        async function loadAgentStatus() {
+            try {
+                const response = await fetch('/admin/ai-security/agent-status');
+                const data = await response.json();
+                
+                let html = '<ul class="agent-list">';
+                
+                Object.entries(data.agent_status).forEach(([name, status]) => {
+                    const statusClass = status.status === 'active' ? 'status-active' : 'status-error';
+                    const aiEnabled = status.ai_enabled ? '🧠 AI Enabled' : '⚠️ AI Disabled';
+                    
+                    html += `
+                        <li class="agent-item">
+                            <span>
+                                <span class="status-indicator ${statusClass}"></span>
+                                ${name.replace('_', ' ').toUpperCase()}
+                            </span>
+                            <span style="font-size: 0.9rem; color: #666;">${aiEnabled}</span>
+                        </li>
+                    `;
+                });
+                
+                html += '</ul>';
+                html += `<div class="metric" style="margin-top: 15px;">
+                    <span>System Health</span>
+                    <span class="metric-value" style="color: ${data.summary.system_health === 'healthy' ? '#48bb78' : '#f56565'}">
+                        ${data.summary.system_health.toUpperCase()}
+                    </span>
+                </div>`;
+                
+                document.getElementById('agent-status').innerHTML = html;
+            } catch (error) {
+                document.getElementById('agent-status').innerHTML = `<div style="color: #f56565;">Error loading agent status: ${error.message}</div>`;
+            }
+        }
+        
+        async function loadSecurityMetrics() {
+            try {
+                const response = await fetch('/admin/ai-security/metrics?hours=24');
+                const data = await response.json();
+                
+                const blockRate = data.request_processing.block_rate_percent;
+                const blockRateColor = blockRate > 20 ? '#f56565' : blockRate > 10 ? '#ed8936' : '#48bb78';
+                
+                let html = `
+                    <div class="metric">
+                        <span>Requests Processed</span>
+                        <span class="metric-value">${data.request_processing.total_processed}</span>
+                    </div>
+                    <div class="metric">
+                        <span>Blocked Requests</span>
+                        <span class="metric-value" style="color: #f56565;">${data.request_processing.blocked}</span>
+                    </div>
+                    <div class="metric">
+                        <span>Block Rate</span>
+                        <span class="metric-value" style="color: ${blockRateColor};">${blockRate}%</span>
+                    </div>
+                    <div class="metric">
+                        <span>Malware Detections</span>
+                        <span class="metric-value" style="color: #f56565;">${data.security_analysis.malicious_detections}</span>
+                    </div>
+                    <div class="metric">
+                        <span>Avg Risk Score</span>
+                        <span class="metric-value">${data.security_analysis.average_risk_score}/100</span>
+                    </div>
+                `;
+                
+                document.getElementById('security-metrics').innerHTML = html;
+            } catch (error) {
+                document.getElementById('security-metrics').innerHTML = `<div style="color: #f56565;">Error loading metrics: ${error.message}</div>`;
+            }
+        }
+        
+        async function loadAIDecisions() {
+            try {
+                const response = await fetch('/admin/ai-security/decisions?hours=24');
+                const data = await response.json();
+                
+                let html = `
+                    <div class="metric">
+                        <span>Total Decisions</span>
+                        <span class="metric-value">${data.statistics.total_decisions}</span>
+                    </div>
+                    <div class="metric">
+                        <span>Approved</span>
+                        <span class="metric-value" style="color: #48bb78;">${data.statistics.approved_requests}</span>
+                    </div>
+                    <div class="metric">
+                        <span>Blocked</span>
+                        <span class="metric-value" style="color: #f56565;">${data.statistics.blocked_requests}</span>
+                    </div>
+                `;
+                
+                if (data.decisions.length > 0) {
+                    html += '<div style="margin-top: 15px; font-size: 0.9rem; color: #666;">Recent Decisions:</div>';
+                    data.decisions.slice(0, 3).forEach(decision => {
+                        const riskClass = decision.risk_score >= 70 ? 'risk-high' : decision.risk_score >= 40 ? 'risk-medium' : 'risk-low';
+                        const statusIcon = decision.approved ? '✅' : '❌';
+                        
+                        html += `
+                            <div style="padding: 8px; margin: 5px 0; background: #f7fafc; border-radius: 4px; font-size: 0.8rem;">
+                                ${statusIcon} ${decision.request_method} ${decision.request_path}
+                                <span class="risk-score ${riskClass}">${decision.risk_score}</span>
+                            </div>
+                        `;
+                    });
+                }
+                
+                document.getElementById('ai-decisions').innerHTML = html;
+            } catch (error) {
+                document.getElementById('ai-decisions').innerHTML = `<div style="color: #f56565;">Error loading decisions: ${error.message}</div>`;
+            }
+        }
+        
+        async function loadBlockedRequests() {
+            try {
+                const response = await fetch('/admin/ai-security/blocked-requests?limit=10');
+                const data = await response.json();
+                
+                if (data.blocked_requests.length === 0) {
+                    document.getElementById('blocked-requests').innerHTML = '<div style="text-align: center; color: #48bb78; font-weight: 500;">✅ No requests blocked recently - System secure!</div>';
+                    return;
+                }
+                
+                let html = '';
+                data.blocked_requests.forEach(request => {
+                    const riskClass = request.risk_score >= 70 ? 'risk-high' : request.risk_score >= 40 ? 'risk-medium' : 'risk-low';
+                    const timestamp = new Date(request.timestamp).toLocaleString();
+                    
+                    html += `
+                        <div class="blocked-request">
+                            <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 5px;">
+                                <strong>${request.request_method} ${request.request_path}</strong>
+                                <span class="risk-score ${riskClass}">${request.risk_score}</span>
+                            </div>
+                            <div class="timestamp">📅 ${timestamp} | 🌐 ${request.source_ip}</div>
+                            <div class="reason">🚫 ${request.block_reasons[0] || 'Security violation detected'}</div>
+                            ${request.agent_analysis.malware_detected ? '<div style="color: #c53030; font-size: 0.8rem;">⚠️ Malware detected by AI scanner</div>' : ''}
+                        </div>
+                    `;
+                });
+                
+                document.getElementById('blocked-requests').innerHTML = html;
+            } catch (error) {
+                document.getElementById('blocked-requests').innerHTML = `<div style="color: #f56565;">Error loading blocked requests: ${error.message}</div>`;
+            }
+        }
+        
+        // Add some visual feedback
+        function showLoading(elementId) {
+            document.getElementById(elementId).innerHTML = '<div class="loading">🔄 Refreshing...</div>';
+        }
+        
+        // Enhance refresh function with loading states
+        async function refreshAll() {
+            const elements = ['agent-status', 'security-metrics', 'ai-decisions', 'blocked-requests'];
+            elements.forEach(showLoading);
+            
+            await Promise.all([
+                loadAgentStatus(),
+                loadSecurityMetrics(),
+                loadAIDecisions(),
+                loadBlockedRequests()
+            ]);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical IoT Device Manager - Enhanced Dashboard</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link href="static/style_modern.css" rel="stylesheet">
+    
+    <!-- Meta tags for better SEO and display -->
+    <meta name="description" content="Advanced Medical IoT Device Management Dashboard with real-time monitoring and control">
+    <meta name="theme-color" content="#3b82f6">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏥</text></svg>">
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-icon">
+                <i class="fas fa-heartbeat"></i>
+            </div>
+            <h2>Medical IoT Dashboard</h2>
+            <p>Initializing secure connections...</p>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Modern Header -->
+        <header class="header">
+            <div class="header-icon">
+                <i class="fas fa-heartbeat"></i>
+            </div>
+            <h1>Medical IoT Device Manager</h1>
+            <p class="subtitle">Advanced monitoring and control platform for medical devices with enterprise-grade security, AI-powered threat detection, and real-time analytics</p>
+            
+            <div class="status-indicators">
+                <div class="status-indicator">
+                    <div class="status-dot"></div>
+                    <span>System Online</span>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot" style="background: var(--info-color);"></div>
+                    <span id="device-count">Loading devices...</span>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot" style="background: var(--warning-color);"></div>
+                    <span id="connection-status">Checking connections...</span>
+                </div>
+                <div class="status-indicator">
+                    <div class="status-dot" style="background: var(--success-color);"></div>
+                    <span>IDS Protected</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Menu -->
+        <nav class="main-nav">
+            <div class="nav-items">
+                <a href="/" class="nav-item active">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/cve-notification-board" class="nav-item">
+                    <i class="fas fa-shield-virus"></i>
+                    <span>CVE Notifications</span>
+                </a>
+                <a href="/ai_security_test_dashboard.html" class="nav-item">
+                    <i class="fas fa-robot"></i>
+                    <span>AI Security Testing</span>
+                </a>
+                <a href="/admin" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span>Admin Panel</span>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Enhanced Control Panel -->
+        <section class="controls">
+            <!-- Device Management -->
+            <div class="control-group">
+                <h3><i class="fas fa-network-wired"></i> Device Management</h3>
+                <div class="control-content">
+                    <div class="button-row">
+                        <button class="btn btn-primary" onclick="refreshDevices()">
+                            <i class="fas fa-sync-alt"></i> Refresh All
+                        </button>
+                        <button class="btn btn-success" onclick="connectAllDevices()">
+                            <i class="fas fa-link"></i> Connect All
+                        </button>
+                        <button class="btn btn-danger" onclick="disconnectAllDevices()">
+                            <i class="fas fa-unlink"></i> Disconnect All
+                        </button>
+                    </div>
+                    <div class="control-stats">
+                        <div class="stat-item">
+                            <span class="stat-number" id="connected-devices">0</span>
+                            <span class="stat-label">Connected</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number" id="total-devices">0</span>
+                            <span class="stat-label">Total</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Telemetry Control -->
+            <div class="control-group">
+                <h3><i class="fas fa-chart-pulse"></i> Telemetry & Data</h3>
+                <div class="control-content">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="telemetry-count">Data Points:</label>
+                            <input type="number" id="telemetry-count" value="5" min="1" max="50">
+                        </div>
+                        <div class="form-group">
+                            <label for="telemetry-interval">Interval (sec):</label>
+                            <input type="number" id="telemetry-interval" value="30" min="5" max="300">
+                        </div>
+                    </div>
+                    <div class="button-row">
+                        <button class="btn btn-primary" onclick="sendTelemetryBatch()">
+                            <i class="fas fa-paper-plane"></i> Send Batch
+                        </button>
+                        <button class="btn btn-secondary" onclick="startContinuousTelemetry()">
+                            <i class="fas fa-play"></i> Start Continuous
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Advanced Actions -->
+            <div class="control-group">
+                <h3><i class="fas fa-tools"></i> Advanced Operations</h3>
+                <div class="control-content">
+                    <div class="button-grid">
+                        <button class="btn btn-warning" onclick="openBulkCodeModal()">
+                            <i class="fas fa-code"></i> Execute Code
+                        </button>
+                        <button class="btn btn-info" onclick="openBulkPatchModal()">
+                            <i class="fas fa-download"></i> Deploy Patch
+                        </button>
+                        <button class="btn btn-secondary" onclick="checkAllDeviceStatus()">
+                            <i class="fas fa-stethoscope"></i> Health Check
+                        </button>
+                        <button class="btn btn-primary" onclick="openCustomMessageModal()">
+                            <i class="fas fa-envelope"></i> Custom Message
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Monitoring -->
+            <div class="control-group">
+                <h3><i class="fas fa-shield-alt"></i> Security & Monitoring</h3>
+                <div class="control-content">
+                    <div class="monitoring-stats">
+                        <div class="monitor-item">
+                            <i class="fas fa-eye"></i>
+                            <span>IDS Active</span>
+                            <div class="monitor-status active"></div>
+                        </div>
+                        <div class="monitor-item">
+                            <i class="fas fa-ban"></i>
+                            <span id="blocked-ips-count">0 Blocked IPs</span>
+                        </div>
+                    </div>
+                    <div class="button-row">
+                        <a href="/admin/ids" target="_blank" class="btn btn-secondary">
+                            <i class="fas fa-shield-alt"></i> Security Dashboard
+                        </a>
+                        <button class="btn btn-info" onclick="viewSystemLogs()">
+                            <i class="fas fa-file-alt"></i> System Logs
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Device Grid -->
+        <section class="device-section">
+            <div class="section-header">
+                <h2><i class="fas fa-hospital"></i> Medical Devices</h2>
+                <div class="view-controls">
+                    <button class="btn btn-secondary" id="grid-view" onclick="setView('grid')">
+                        <i class="fas fa-th"></i>
+                    </button>
+                    <button class="btn btn-secondary" id="list-view" onclick="setView('list')">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div id="devices-container" class="device-grid">
+                <!-- Devices will be loaded here -->
+                <div class="loading-placeholder">
+                    <div class="loading">Loading devices...</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Activity Log -->
+        <section class="activity-log">
+            <h3><i class="fas fa-history"></i> Recent Activity</h3>
+            <div class="log-controls">
+                <button class="btn btn-secondary btn-sm" onclick="clearActivityLog()">
+                    <i class="fas fa-trash"></i> Clear
+                </button>
+                <button class="btn btn-secondary btn-sm" onclick="exportActivityLog()">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+            <div id="activity-log-content" class="log-content">
+                <!-- Activity logs will appear here -->
+            </div>
+        </section>
+    </div>
+
+    <!-- Enhanced Modals -->
+    
+    <!-- Code Execution Modal -->
+    <div id="codeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-code"></i> Execute Code on Devices</h2>
+                <button class="close" onclick="closeModal('codeModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="code-target-devices">Target Devices:</label>
+                    <select id="code-target-devices" multiple>
+                        <!-- Options will be populated by JavaScript -->
+                    </select>
+                    <small>Hold Ctrl/Cmd to select multiple devices</small>
+                </div>
+                <div class="form-group">
+                    <label for="code-language">Language:</label>
+                    <select id="code-language">
+                        <option value="python">Python</option>
+                        <option value="javascript">JavaScript</option>
+                        <option value="bash">Bash</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="code-content">Code:</label>
+                    <textarea id="code-content" placeholder="Enter your code here..." rows="10"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeModal('codeModal')">Cancel</button>
+                    <button class="btn btn-warning" onclick="executeCode()">
+                        <i class="fas fa-play"></i> Execute Code
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Patch Deployment Modal -->
+    <div id="patchModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-download"></i> Deploy Patch to Devices</h2>
+                <button class="close" onclick="closeModal('patchModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="patch-target-devices">Target Devices:</label>
+                    <select id="patch-target-devices" multiple>
+                        <!-- Options will be populated by JavaScript -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="patch-type">Patch Type:</label>
+                    <select id="patch-type">
+                        <option value="security">Security Update</option>
+                        <option value="firmware">Firmware Update</option>
+                        <option value="configuration">Configuration Change</option>
+                        <option value="feature">Feature Update</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="patch-version">Version:</label>
+                    <input type="text" id="patch-version" placeholder="e.g., 1.2.3">
+                </div>
+                <div class="form-group">
+                    <label for="patch-description">Description:</label>
+                    <textarea id="patch-description" placeholder="Describe the patch..." rows="4"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeModal('patchModal')">Cancel</button>
+                    <button class="btn btn-info" onclick="deployPatch()">
+                        <i class="fas fa-upload"></i> Deploy Patch
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Message Modal -->
+    <div id="customMessageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2><i class="fas fa-envelope"></i> Send Custom Message</h2>
+                <button class="close" onclick="closeModal('customMessageModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="message-target-devices">Target Devices:</label>
+                    <select id="message-target-devices" multiple>
+                        <!-- Options will be populated by JavaScript -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="message-type-select">Message Type:</label>
+                    <select id="message-type-select">
+                        <option value="command">Command</option>
+                        <option value="alert">Alert</option>
+                        <option value="notification">Notification</option>
+                        <option value="configuration">Configuration</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="message-priority">Priority:</label>
+                    <select id="message-priority">
+                        <option value="low">Low</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="high">High</option>
+                        <option value="critical">Critical</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="message-content-text">Message Content:</label>
+                    <textarea id="message-content-text" placeholder="Enter your message..." rows="6"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeModal('customMessageModal')">Cancel</button>
+                    <button class="btn btn-primary" onclick="sendCustomMessage()">
+                        <i class="fas fa-paper-plane"></i> Send Message
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Device Details Modal -->
+    <div id="deviceDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="device-details-title"><i class="fas fa-info-circle"></i> Device Details</h2>
+                <button class="close" onclick="closeModal('deviceDetailsModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="device-details-content">
+                <!-- Device details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="toast-container">
+        <!-- Toast notifications will appear here -->
+    </div>
+
+    <!-- Enhanced JavaScript -->
+    <script src="static/script_enhanced.js"></script>
+</body>
+</html>
