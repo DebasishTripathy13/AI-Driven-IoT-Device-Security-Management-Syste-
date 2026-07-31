@@ -1,131 +1,128 @@
-# Azure IoT Hub: Register 10 Medical Devices
+<p align="center">
+  <img src="assets/banner-azure-iot.png" alt="Azure IoT Medical Device Security Operations Center" width="100%">
+</p>
 
-This script creates (or updates) 10 IoT devices in your Azure IoT Hub and sets device twin tags for manufacturer, OS (name/version), and installed software (e.g., Python 3.12).
+# Azure IoT Medical Device Security Operations Center
 
-## Prerequisites
-- Python 3.8+
-- IoT Hub connection string with registry permissions (typically a policy like `iothubowner`).
-- Windows PowerShell (pwsh) commands are shown below.
+<p align="center">
+  <img alt="Python" src="https://img.shields.io/badge/python-3.8+-3776AB?style=flat-square&logo=python&logoColor=white">
+  <img alt="FastAPI" src="https://img.shields.io/badge/API-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white">
+  <img alt="Azure IoT Hub" src="https://img.shields.io/badge/Azure-IoT%20Hub-0078D4?style=flat-square&logo=microsoftazure&logoColor=white">
+  <img alt="AI Agents" src="https://img.shields.io/badge/AI%20agents-Groq-F55036?style=flat-square">
+</p>
 
-## Install
-```pwsh
-cd "c:\Users\debas\Downloads\DebasishGEfinal"
-python -m venv .venv
-. .\.venv\Scripts\Activate.ps1
+Registers and operates a fleet of medical IoT devices in Azure IoT Hub, then wraps them in an
+autonomous security operations layer: a real-time intrusion detection system, live CVE tracking
+against installed firmware/software, and a coordinated set of AI agents that detect malicious
+code in incoming patches, validate and roll out updates on ephemeral test devices, and flag
+optimization/refactoring opportunities in the codebase itself.
+
+## What's actually in here
+
+This started as a device-registration script (`register_iothub_devices.py`) and grew into a
+microservices security platform. Three layers:
+
+1. **Device layer** — registers medical devices (ECG, infusion pump, ventilator, defibrillator,
+   glucometer, etc.) in Azure IoT Hub with manufacturer/OS/software twin tags, and simulates
+   realistic telemetry per device type.
+2. **Service layer** — a web server (port 8000) and API server (port 8001) in a
+   proxy/microservice split, each with request logging, an intrusion detection middleware
+   (SQLi/code-injection pattern matching, flood protection, IP blocking), and Chart.js-driven
+   admin + user dashboards.
+3. **Agent layer** — an `ai_agent_coordinator.py` orchestrates five autonomous agents on top of
+   that: CVE ingestion, malicious-code detection, patch validation, proactive monitoring, and
+   optimization/refactoring.
+
+## Architecture
+
+```mermaid
+flowchart TB
+    subgraph Devices["Medical devices"]
+        D1[ECG]
+        D2[Infusion pump]
+        D3[Ventilator]
+        D4[...]
+    end
+    Devices <-->|telemetry / twin tags| Hub[(Azure IoT Hub)]
+
+    Web["Web Server :8000\nstatic UI + proxy"] <--> Api["API Server :8001\nFastAPI device + telemetry endpoints"]
+    Api <--> Hub
+    Api --> IDS["IDS Middleware\nSQLi / code-injection / flood detection"]
+    IDS --> SecDB[(security_monitoring.db)]
+
+    Api --> Coord["AI Agent Coordinator"]
+    Coord --> CVE["CVE Management\nNVD + OSV feeds"]
+    Coord --> Mal["Malicious Code Detection\n(Groq LLM)"]
+    Coord --> Patch["Patch Validation\nephemeral device rollout + rollback"]
+    Coord --> Mon["Proactive Monitoring\nfirmware ↔ CVE matching"]
+    Coord --> Opt["Optimization / Refactoring\n(Groq LLM)"]
+
+    Web --> AdminUI["Admin dashboard\n(Nozomi-style)"]
+    Web --> MainUI["Main dashboard"]
+```
+
+## Quick start
+
+```bash
 pip install -r requirements.txt
+cp .env.example .env
+# edit .env: IOTHUB_CONNECTION_STRING, GROQ_API_KEY (for the AI agents)
+
+# 1. Register the device fleet
+python register_iothub_devices.py
+
+# 2. Start both servers
+python api_server.py   # :8001
+python main.py          # :8000
 ```
 
-## Configure secrets
-Create a local `.env` by copying the example and fill in your hub connection string.
+Then open `http://localhost:8000` for the main dashboard, or
+`http://localhost:8001/admin` for the security-focused admin view
+(`http://localhost:8001/docs` for the Swagger API reference).
 
-```pwsh
-Copy-Item .env.example .env
-# Edit .env and set IOTHUB_CONNECTION_STRING
+Send test telemetry:
+
+```bash
+python telemetry_client.py --continuous --interval 10
 ```
 
-## Run
-Provide the IoT Hub connection string via `.env`, environment variable, or `--hub-conn` argument.
+## AI agents
 
-```pwsh
-# Option A: via env var
-$env:IOTHUB_CONNECTION_STRING = "HostName=...;SharedAccessKeyName=iothubowner;SharedAccessKey=..."
-python .\register_iothub_devices.py
+| Agent | File | Does |
+|---|---|---|
+| Coordinator | `ai_agent_coordinator.py` | Orchestrates the agents below into one pipeline |
+| CVE Management | `cve_management_system.py`, `osv_cve_fetcher.py` | Pulls from NVD + OSV, stores in `data/cve_database.db` |
+| Proactive Monitoring | `proactive_monitoring_agent.py` | Matches installed firmware/software against fetched CVEs, early-warns on exposure |
+| Malicious Code Detection | `malicious_code_detection_agent.py` | Scans incoming patches/firmware for malicious patterns via Groq |
+| Patch Validation | `patch_validation_agent.py` | Deploys patches to ephemeral IoT Hub test devices, validates, rolls back on failure |
+| Optimization | `optimization_agent.py` | Profiles system performance, flags bottlenecks |
+| Code Refactoring | `code_refactoring_agent.py` | Reviews code quality against the project's own standards |
 
-# Option B: via argument
-python .\register_iothub_devices.py --hub-conn "HostName=...;SharedAccessKeyName=iothubowner;SharedAccessKey=..."
+## API endpoints
+
+**Devices** — `GET /api/devices`, `GET /api/devices/{id}`, `POST /api/devices/connect`,
+`POST /api/devices/disconnect`, `PATCH /api/devices/{id}`
+
+**Telemetry** — `POST /api/telemetry/send`, `POST /api/telemetry/continuous`,
+`GET /api/telemetry/sample/{device_type}`
+
+**Security/Admin** — `GET /admin/ids/overview`, `GET /admin/ids/analytics`,
+`GET /admin/ids/events`, `GET /admin/ids/blocked-ips`
+
+## Testing
+
+```bash
+python test_architecture.py      # microservice wiring
+python test_ids_security.py      # IDS detection rules
+python test_dashboard_data.py    # dashboards show live, not hardcoded, data
+python test_cve_system.py        # CVE fetch/match pipeline
 ```
-
-By default, it creates 10 devices named like `med-ecg-001`, `med-infusionpump-002`, ... and writes outputs to `output/devices.json` and `output/devices.csv`.
-
-## Customization
-```pwsh
-python .\register_iothub_devices.py \
-  --count 10 \
-  --prefix med \
-  --manufacturer "GE Healthcare" \
-  --os-name "Ubuntu" \
-  --os-version "22.04" \
-  --software "Python:3.12,OpenSSL:3.0.13" \
-  --device-names "Health Monitor,Infusion Pump,Pulse Oximeter"
-```
-
-- `--software` supports `name:version` pairs separated by commas. You can also use `name=version`. Example: `Python:3.12,NumPy:2.0.1`.
-- `--device-names` lets you supply custom display names (e.g., `Health Monitor`). IDs are sanitized automatically, e.g., `Health Monitor` becomes `med-health-monitor-001`.
-
-## Send Telemetry Data
-
-Use `telemetry_client.py` to send mock medical data from the registered devices:
-
-```pwsh
-# Install the device SDK
-pip install -r requirements.txt
-
-# Send 5 messages from each device (batch mode)
-python .\telemetry_client.py
-
-# Send continuous telemetry every 10 seconds
-python .\telemetry_client.py --continuous --interval 10
-
-# Send from specific devices only
-python .\telemetry_client.py --device-ids "med-ecg-001,med-pulseoximeter-003"
-
-# Run for 60 seconds then stop
-python .\telemetry_client.py --continuous --duration 60
-```
-
-The telemetry client generates realistic medical data:
-- **ECG**: Heart rate, ECG waveform, rhythm analysis
-- **Pulse Oximeter**: Oxygen saturation, pulse rate, perfusion index
-- **Blood Pressure**: Systolic/diastolic pressure, mean arterial pressure
-- **Infusion Pump**: Flow rate, pressure, volume infused
-- **Ventilator**: Tidal volume, respiratory rate, PEEP, FiO2
-- **Glucometer**: Glucose levels in mg/dL
-- **Thermometer**: Temperature in Celsius and Fahrenheit
-- **Defibrillator**: Battery status, shock energy, impedance
-- **EEG**: Brain wave patterns (alpha/beta), amplitude
-- **Ultrasound**: Frequency, depth, imaging mode
-
-## Web Application
-
-Launch the web application for a modern UI to manage devices and telemetry:
-
-```pwsh
-# Install web dependencies
-pip install -r requirements.txt
-
-# Start the web server
-python main.py
-```
-
-Then open your browser to: http://localhost:8000
-
-**Web Features:**
-- **Interactive Dashboard**: Visual device status and real-time statistics
-- **Device Management**: Connect/disconnect devices, view device details
-- **Telemetry Control**: Send batch or continuous telemetry with custom intervals
-- **Real-time Monitoring**: Live activity log and toast notifications
-- **REST API**: Full REST API with Swagger documentation at `/docs`
-- **Request Logging**: All API requests logged with user IP and timestamps
-
-**API Endpoints:**
-- `GET /api/devices` - List all devices
-- `GET /api/devices/{device_id}` - Get device details
-- `POST /api/devices/connect` - Connect devices
-- `POST /api/devices/disconnect` - Disconnect devices
-- `POST /api/telemetry/send` - Send telemetry batch
-- `POST /api/telemetry/continuous` - Start continuous telemetry
-- `GET /api/telemetry/sample/{device_type}` - Get sample data
-- `PATCH /api/devices/{device_id}` - Update device properties
-- `GET /api/status` - System status and statistics
-
-All requests are logged with user IP, endpoint, method, and details in `api.log`.
-
-## Output
-- `output/devices.json`: Full details including per-device connection strings and keys.
-- `output/devices.csv`: CSV with commonly needed fields including a `software` column, semicolon-delimited pairs like `Python:3.12;OpenSSL:3.0.13`.
 
 ## Notes
-- The script is idempotent: if a device already exists, it reuses current keys and only updates twin tags.
-- Requires policy with `RegistryRead` and `RegistryWrite` permissions.
-- Device SAS connection string is built from the primary key for convenience.
-- Do not commit real secrets. `.env` is ignored by `.gitignore`. Rotate keys if they were exposed.
+
+- Idempotent device registration: re-running `register_iothub_devices.py` reuses existing keys
+  and only updates twin tags.
+- `.env` is gitignored — never commit a real `IOTHUB_CONNECTION_STRING` or `GROQ_API_KEY`.
+  Rotate immediately if one is ever exposed.
+- See `ARCHITECTURE_SUMMARY.md` and `README_COMPLETE.md` for the original microservices refactor
+  writeups this consolidates.
